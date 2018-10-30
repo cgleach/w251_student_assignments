@@ -66,7 +66,7 @@ if __name__ == "__main__":
     IP = "169.45.88.196"
     Port = 5555 
     data = ssc.socketTextStream(IP, Port)
-   
+    short_window = data.window((stream_length*window_slides),stream_length)   
 
     new_data = data.flatMap(lambda line: line.split("*new*"))
     newest = new_data.map(mapLine).reduceByKey(groupByHash)
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     sorted_running_counts = running_counts.transform(lambda rdd: rdd.sortBy(lambda tag_info: tag_info[1][0], ascending = False))
 #    sorted_running_counts.foreachRDD(process_rdd)
 
-    short_window = data.window((stream_length*window_slides),stream_length).flatMap(lambda line: line.split("*new*")).map(mapLine).reduceByKey(groupByHash) 
+    short_window = short_window.flatMap(lambda line: line.split("*new*")).map(mapLine).reduceByKey(groupByHash) 
     short_window.foreachRDD(process_rdd)
 
     ssc.start()
