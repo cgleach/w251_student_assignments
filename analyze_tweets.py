@@ -10,8 +10,8 @@ import json
 
 def groupByHash(current_state, new_values):
     (count, mentioned_by, mentioned) = new_values
-    (n, n_mentioned_by, n_mentioned) = current_state
-    return (n+count, n_mentioned_by + mentioned_by, n_mentioned + mentioned)
+    (curr_count, curr_mentioned_by, curr_mentioned) = current_state
+    return (curr_count+count, curr_mentioned_by + mentioned_by, curr_mentioned + mentioned)
 
 
 def mapLine(x):
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     newest = new_data.map(mapLine).reduceByKey(groupByHash)
     running_counts = newest.updateStateByKey(aggregate_hashtag_state)
     sorted_running_counts = running_counts.transform(lambda rdd: rdd.sortBy(lambda tag_info: tag_info[1][0], ascending = False))
-#    sorted_running_counts.foreachRDD(process_rdd)
+    sorted_running_counts.foreachRDD(process_rdd)
 
     short_window = short_window.flatMap(lambda line: line.split("*new*")).map(mapLine).reduceByKey(groupByHash) 
     short_window.foreachRDD(process_rdd)
