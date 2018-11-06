@@ -9,12 +9,23 @@ import json
 
 
 def groupByHash(current_state, new_values):
-    (count, mentioned_by, mentioned) = new_values
-    (curr_count, curr_mentioned_by, curr_mentioned) = current_state
-    return (curr_count+count, curr_mentioned_by + mentioned_by, curr_mentioned + mentioned)
+    """
+    Function which returns a new tuple by incrementing curr_count (count always =1),
+    adding the new user to the full list of users of this hashtag (key), and adding
+    all associated mentioned to the larger list of mentions associated with this hashtag (key)
+    """
+    (count, user, mentions) = new_values
+    (curr_count, curr_users, curr_mentions) = current_state
+    return (curr_count+count, curr_users + user, curr_mentions + mentions)
 
 
 def mapLine(x):
+    """
+    Splits each line into a user, hashtag, and list of mentions.  If there are
+    mentions associated with hashtag the list is evaluated, otherwise it is set
+    to an empty list.  We return a key value pair, with hashtag as key,
+    and a tuple of count, list with user, and list with mentions
+    """
     [user, hashtag, mentioned] = x.split("|")
     if len(mentioned) > 0:
         mentioned = eval(mentioned)
@@ -24,6 +35,11 @@ def mapLine(x):
 
 
 def aggregate_hashtag_state(new_values, current_state):
+    """
+    Checks if current key exists and if so sets current values
+    to the state; otherwise, initializes values to 0 and empty lists.
+    Then goes through and updates the overall state.
+    """
     if current_state is not None:
         (count,users,mentions) = current_state
     else:
@@ -38,18 +54,24 @@ def aggregate_hashtag_state(new_values, current_state):
 
 
 def process_rdd(time, rdd):
-	try:
-    	    sql_context = SQLContext(rdd.context)
-   	    row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1][0],users=w[1][1],mentions=w[1][2]))
-    	    hashtags_df = sql_context.createDataFrame(row_rdd)
-    	    hashtags_df.registerTempTable("hashtags")
-    	    hashtag_counts_df = sql_context.sql("select * from hashtags order by hashtag_count desc limit 10")
-    	    hashtag_counts_df.show()
-        except:
-            pass
+    """
+    For each RDD in streaming process converts key value pairs to rows and
+    inserts into a spark DataFrame.  This df is then registered as a temp
+    table which we can query to display our results.
+    """
+    try:
+        sql_context = SQLContext(rdd.context)
+        row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1][0],users=w[1][1],mentions=w[1][2]))
+        hashtags_df = sql_context.createDataFrame(row_rdd)
+        hashtags_df.registerTempTable("hashtags")
+        hashtag_counts_df = sql_context.sql("select * from hashtags order by hashtag_count desc limit 10")
+        hashtag_counts_df.show()
+    except:
+        pass
 
 
 if __name__ == "__main__":
+    # Set up spark session and context
     sc = SparkSession.builder.appName('hw9').getOrCreate()
     s_context = sc.sparkContext
 
